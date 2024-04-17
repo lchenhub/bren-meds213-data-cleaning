@@ -1,0 +1,76 @@
+---
+title: "Week 2 Assignment - Data Cleaning"
+author: "Liane Chen"
+format: html
+---
+```{r, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+```
+
+```{r}
+datadir_processed <- "data/processed/"
+
+snowcover_data <- read_csv(file.path(datadir_processed, snowcover_csv))
+
+snowcover_data_fixed <- snowcover_data %>%
+  mutate(snow_days = ifelse(Snow_cover > 10, 1, 0),
+         Date2 = as_date(Date))
+```
+
+```{r}
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Date2 = ifelse(is.na(Date2),  dmy("08/06/06"), Date2))
+
+snowcover_data_fixed
+```
+```{r}
+snowcover_data_fixed <- snowcover_data %>%
+  mutate(Date = ifelse(Date == "8&9 june 06", "8 june 06", Date),
+         Date2 = dmy(Date))
+```
+
+
+1.  Clean the `Water_cover` column to transform it into the correct data type and respect expectations for a percentage
+```{r}
+snowcover_data_fixed %>%
+  count(Water_cover) %>%
+  filter(is.na(as.numeric(Water_cover)))
+```
+
+```{r}
+snowcover_data_fixed %>%
+  filter(Water_cover ==".") %>%
+  View()
+```
+
+```{r}
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Water_cover = ifelse(Water_cover==".", NA, Water_cover))
+```
+
+
+2.  Clean the `Land_cover` column to transform it into the correct data type and respect expectations for a percentage
+If 2% or less of your data is weird, getting rid of it is fine. Anything more, something is off. Just document it. 
+Get rid of the lines with negative percentages. For lines with NA Snow cover and -100 Land Cover, that doesn't look right either. 
+
+```{r}
+snowcover_data_fixed %>%
+  count(Land_cover) %>%
+  filter(is.na(as.numeric(Land_cover)))
+```
+
+```{r}
+snowcover_data_fixed %>%
+  filter(Land_cover ==".") %>%
+  View()
+```
+
+```{r}
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Land_cover = ifelse(Land_cover==".", NA, Land_cover))
+```
+
+
+3.  Use the relationship between the three cover columns (Snow, Water, Land) to infer missing values where possible and recompute the `Total_cover` column
