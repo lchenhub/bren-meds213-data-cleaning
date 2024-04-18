@@ -4,6 +4,8 @@ author: "Liane Chen"
 format: html
 ---
 
+GitHub link: https://github.com/lchenhub/bren-meds213-data-cleaning
+
 Initial set up:
 
 ```{r}
