@@ -104,6 +104,13 @@ snowsurvey_fixed <- snowsurvey_fixed %>%
   mutate(Snow_cover = ifelse(Snow_cover=="<1", "0", Snow_cover))
 ```
 
+Add date2 column:
+```{r}
+snowsurvey_fixed <- snowsurvey_fixed %>% 
+    mutate(Date2 = as_date(Date, format = "%d-%b-%y"))
+```
+
+
 Now we can test if we now only have NAs as non numeric values in the column:
 
 ```{r}

@@ -3,74 +3,178 @@ title: "Week 2 Assignment - Data Cleaning"
 author: "Liane Chen"
 format: html
 ---
+
+Initial set up:
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
 ```{r, message=FALSE}
 library(tidyverse)
 library(lubridate)
 library(RColorBrewer)
 ```
 
-```{r}
+```{r, warning=FALSE}
+datadir_raw <- "data/raw/"
 datadir_processed <- "data/processed/"
 
-snowcover_data <- read_csv(file.path(datadir_processed, snowcover_csv))
+snowcover_data <- read_csv(file.path(datadir_raw, "ASDN_Snow_survey.csv"))
 
 snowcover_data_fixed <- snowcover_data %>%
   mutate(snow_days = ifelse(Snow_cover > 10, 1, 0),
          Date2 = as_date(Date))
 ```
 
+Cleaning the data:
+
 ```{r}
+#make sure the dates reflect the latest cleaning from class
 snowcover_data_fixed <- snowcover_data_fixed %>%
   mutate(Date2 = ifelse(is.na(Date2),  dmy("08/06/06"), Date2))
 
+#view
 snowcover_data_fixed
 ```
+
 ```{r}
+#some dates have two days in one cell. fix this and format
 snowcover_data_fixed <- snowcover_data %>%
   mutate(Date = ifelse(Date == "8&9 june 06", "8 june 06", Date),
          Date2 = dmy(Date))
 ```
 
-
 1.  Clean the `Water_cover` column to transform it into the correct data type and respect expectations for a percentage
+
 ```{r}
+#filter data to include numeric values for water cover only
 snowcover_data_fixed %>%
   count(Water_cover) %>%
   filter(is.na(as.numeric(Water_cover)))
 ```
 
 ```{r}
+#look at rows with water covered entered as "."
 snowcover_data_fixed %>%
   filter(Water_cover ==".") %>%
   View()
 ```
 
 ```{r}
+#fix the water cover column so "." values are converted to NA
 snowcover_data_fixed <- snowcover_data_fixed %>%
   mutate(Water_cover = ifelse(Water_cover==".", NA, Water_cover))
 ```
 
-
-2.  Clean the `Land_cover` column to transform it into the correct data type and respect expectations for a percentage
-If 2% or less of your data is weird, getting rid of it is fine. Anything more, something is off. Just document it. 
-Get rid of the lines with negative percentages. For lines with NA Snow cover and -100 Land Cover, that doesn't look right either. 
+```{r}
+#fix the water cover column so "353" values are converted to NA
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Water_cover = ifelse(Water_cover=="353", NA, Water_cover))
+```
 
 ```{r}
+#make sure water cover values are numeric
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Water_cover = as.numeric(Water_cover))
+
+glimpse(snowcover_data_fixed)
+```
+
+```{r}
+#look at fixed table
+head(snowcover_data_fixed)
+```
+
+2.  Clean the `Land_cover` column to transform it into the correct data type and respect expectations for a percentage If 2% or less of your data is weird, getting rid of it is fine. Anything more, something is off. Just document it. Get rid of the lines with negative percentages. For lines with NA Snow cover and -100 Land Cover, that doesn't look right either.
+
+```{r}
+#include numeric values are included only 
 snowcover_data_fixed %>%
   count(Land_cover) %>%
   filter(is.na(as.numeric(Land_cover)))
 ```
 
 ```{r}
+#look at rows that have "." entered 
 snowcover_data_fixed %>%
   filter(Land_cover ==".") %>%
   View()
 ```
 
 ```{r}
+#convert these "." to NA
 snowcover_data_fixed <- snowcover_data_fixed %>%
   mutate(Land_cover = ifelse(Land_cover==".", NA, Land_cover))
 ```
 
+```{r}
+#get rid of negative percentages (these may be input errors)
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Land_cover = ifelse(Land_cover=="<1", "0", Land_cover))
+```
+
+```{r}
+#get rid of the row with "ukn"
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Land_cover = ifelse(Land_cover=="unk", NA, Land_cover))
+```
+
+```{r}
+#fix rows with n/a and convert to NA to match others
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Land_cover = ifelse(Land_cover=="n/a", NA, Land_cover))
+```
+
+```{r}
+#make sure all entries are numeric
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Land_cover = as.numeric(Land_cover))
+
+#view
+glimpse(snowcover_data_fixed)
+```
+
+```{r}
+#there are some rows above 100. take these out
+snowcover_data_fixed %>%
+  filter(Land_cover > 100)
+```
 
 3.  Use the relationship between the three cover columns (Snow, Water, Land) to infer missing values where possible and recompute the `Total_cover` column
+
+```{r}
+#check the classes for snow, water, land covers
+class(snowcover_data_fixed$Snow_cover)
+class (snowcover_data_fixed$Water_cover)
+class(snowcover_data_fixed$Land_cover)
+```
+
+```{r}
+#convert snow cover to numeric
+snowcover_data_fixed$Snow_cover <- as.numeric(snowcover_data_fixed$Snow_cover)
+```
+
+```{r}
+#check the classes for snow, water, land covers again
+class(snowcover_data_fixed$Snow_cover)
+class (snowcover_data_fixed$Water_cover)
+class(snowcover_data_fixed$Land_cover)
+```
+
+```{r}
+#filter table to include total cover values that are equal to 100 only
+snowcover_data_fixed <- snowcover_data_fixed %>% 
+  mutate(Total_cover = Snow_cover + Water_cover + Land_cover) %>%
+  filter(Total_cover == 100) %>% 
+  filter(!is.na(Total_cover))
+
+#check that total cover equals 100
+unique(snowcover_data_fixed$Total_cover)
+```
+
+```{r}
+#write the cleaned data into a .csv
+write_csv(snowcover_data_fixed, file.path(datadir_processed, "all_cover_fixed_lianechen.csv"))
+```
